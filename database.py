@@ -78,21 +78,47 @@ def get_user_profile(user_id):
         doc_ref = db.collection('user_profiles').document(str(user_id))
         doc = doc_ref.get()
         if doc.exists:
-            print(f"✅ 成功讀取用戶 {user_id} 的資料。")
-            return doc.to_dict()
+            profile = doc.to_dict()
+            # 確保舊資料也能相容新欄位
+            if 'recent_history' not in profile:
+                profile['recent_history'] = []
+            return profile
         else:
             print(f"⚠️ 用戶 {user_id} 的資料不存在，建立預設檔案。")
             default_profile = {
                 'discord_id': user_id,
                 'name': '',
                 'current_role': '',
-                'keywords': []
+                'keywords': [],
+                'recent_history': [] # 新增：儲存最近 4 句對話
             }
             doc_ref.set(default_profile)
             return default_profile
     except Exception as e:
         print(f"❌ 獲取用戶資料失敗: {e}")
         return None
+
+def add_to_history(user_id, role, content):
+    """
+    紀錄最近對話 4句
+    role: 'bot' (自己) 或 'user' (對方)
+    """
+    db = get_thread_local_db()
+    try:
+        doc_ref = db.collection('user_profiles').document(str(user_id))
+        doc = doc_ref.get()
+        if doc.exists:
+            profile = doc.to_dict()
+            history = profile.get('recent_history', [])
+            
+            history.append({"r": role, "m": content})
+            
+            if len(history) > 4:
+                history = history[-4:]
+            
+            doc_ref.update({'recent_history': history})
+    except Exception as e:
+        print(f"❌ 紀錄對話歷史失敗: {e}")
 
 def update_user_profile(user_id, data):
     """更新用戶在 Firestore 中的資料"""

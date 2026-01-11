@@ -30,10 +30,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 async def load_extensions():
     """載入所有 Cog 模組"""
-    # 要載入的 cog 模組列表
     extensions = [
         "slash.chat.profile",
-        "slash.mc.minecraft_control" 
+        "slash.mc.minecraft_control",
+        "slash.music.music_player",
+        "slash.ping_command",
+        "slash.help.help" 
     ]
     for extension in extensions:
         try:
@@ -44,8 +46,9 @@ async def load_extensions():
             
 @bot.event
 async def on_ready():
-    """當機器人啟動時觸發"""
+    """當機器人啟動時觸發"""   
     print(f"✅ 目前登入身份 --> {bot.user}")
+
     try:
         # 同步斜線指令
         slash = await bot.tree.sync()
@@ -53,21 +56,8 @@ async def on_ready():
     except Exception as e:
         print(f"❌ 同步斜線指令失敗: {e}")
 
-# bot.tree.add_command(info_group)
-
-# def main():
-#     """主程式啟動點"""
-    
-#     setup_gemini_api(bot, gemini_api_key)
-
-#     print("🟢 開始運行機器人...")
-#     try:
-#         bot.run(bot_token)
-#     except Exception as e:
-#         print(f"致命錯誤：程式無法啟動。錯誤訊息：{e}")
 def main():
     """主程式啟動點"""
-    # 在機器人啟動前初始化資料庫
     try:
         initialize_database()
     except Exception as e:
@@ -77,7 +67,7 @@ def main():
     # 初始化 Gemini API
     setup_gemini_api(bot, gemini_api_key)
 
-    # 載入 Group 指令 (你原本的方式)
+    # 載入 Group 指令
     bot.tree.add_command(info_group)
     
     async def start_bot():
