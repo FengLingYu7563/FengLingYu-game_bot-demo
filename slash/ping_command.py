@@ -17,10 +17,8 @@ class PingCommandCog(commands.Cog):
         else:
             status = "🔴 延遲較高"
 
-        # 使用 interaction.response.send_message 回覆斜線指令
         await interaction.response.send_message(
-            f"🏓 **Pong!**\n"
-            f"**{latency_ms}ms**\n"
+            f"**ping: {latency_ms}ms**\n"
             f"*{status}*"
         )
 

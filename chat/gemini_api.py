@@ -20,7 +20,7 @@ def parse_gemini_response(text):
             data_to_update = json.loads(json_str.strip())
             return message_content.strip(), data_to_update
         except json.JSONDecodeError:
-            print(f"❌ 解析 Gemini 回應中的 JSON 失敗: {json_str}")
+            print(f"解析 Gemini 回應中的 JSON 失敗: {json_str}")
             return text, None
     return text, None
 
@@ -29,7 +29,7 @@ def read_keyword_filter():
         with open(KEYWORD_LIST_PATH, 'r', encoding='UTF-8') as f:
             return [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
-        print(f"警告: 找不到檔案 {KEYWORD_LIST_PATH}，將使用空關鍵字清單。")
+        print(f"找不到 {KEYWORD_LIST_PATH}，使用空關鍵字清單。")
         return []
 
 def read_system_rule():
@@ -37,12 +37,12 @@ def read_system_rule():
         with open(SYSTEM_RULE_PATH, 'r', encoding='UTF-8') as f:
             return f.read().strip()
     except FileNotFoundError:
-        print(f"警告: 找不到檔案 {SYSTEM_RULE_PATH}，將使用空系統指令。")
+        print(f"找不到檔案 {SYSTEM_RULE_PATH}")
         return ""
 
 def setup_gemini_api(bot: commands.Bot, api_key: str):
     if not api_key:
-        print("❌ 錯誤：未提供 Gemini API 金鑰。")
+        print("提供 Gemini API 金鑰。")
         return
 
     prompt_injection_keywords = read_keyword_filter()
@@ -61,9 +61,9 @@ def setup_gemini_api(bot: commands.Bot, api_key: str):
             system_instruction=my_system_instruction,
             safety_settings=safety_settings
         )
-        print("✅ Gemini API 已成功配置")
+        print("Gemini API 已成功配置")
     except Exception as e:
-        print(f"❌ 錯誤：無法配置 Gemini API 詳細錯誤：{e}")
+        print(f"無法配置 Gemini API 詳細錯誤：{e}")
         model = None
         return
 
@@ -143,7 +143,7 @@ def setup_gemini_api(bot: commands.Bot, api_key: str):
                 add_to_history(user_id, "bot", full_response)
 
         except Exception as e:
-            print(f"❌ Gemini API 發生錯誤: {e}")
+            print(f"Gemini API 發生錯誤: {e}")
             await message.channel.send("我現在懶得理你。")
         
         await bot.process_commands(message)

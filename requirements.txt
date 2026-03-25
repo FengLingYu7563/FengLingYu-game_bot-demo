@@ -10,3 +10,4 @@ google-cloud-firestore
 yt-dlp
 PyNaCl
 ffmpeg-python
+wavelink>=3.0.0

@@ -4,9 +4,12 @@ from discord import app_commands
 import os
 import asyncio
 from dotenv import load_dotenv
+import time
 
 # model
 from chat.gemini_api import setup_gemini_api
+from chat.openai_api import setup_openai_api
+
 from slash.info import info_group
 from database import initialize_database
 
@@ -14,19 +17,28 @@ load_dotenv()
 
 bot_token = os.getenv("DISCORD_BOT_TOKEN")
 gemini_api_key = os.getenv("GEMINI_API_KEY")
+openai_key = os.getenv("OPENAI_API_KEY")
 
 if not bot_token:
-    print("❌ 警告: 找不到 DISCORD_BOT_TOKEN")
+    print("找不到 DISCORD_BOT_TOKEN")
     exit()
 
 if not gemini_api_key:
-    print("❌ 警告: 找不到 GEMINI_API_KEY")
+    print("找不到 GEMINI_API_KEY")
 
 # 設定 Discord Intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.presences = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# 初始化 Bot 時就設定狀態
+bot = commands.Bot(
+    command_prefix="!", 
+    intents=intents,
+    status=discord.Status.online # online(綠燈), idle(黃燈), dnd(紅燈)
+)
 
 async def load_extensions():
     """載入所有 Cog 模組"""
@@ -40,32 +52,53 @@ async def load_extensions():
     for extension in extensions:
         try:
             await bot.load_extension(extension)
-            print(f"✅ 成功載入擴展模組: {extension}")
+            print(f"成功載入extension: {extension}")
         except Exception as e:
-            print(f"❌ 載入擴展模組失敗: {extension}, 錯誤: {e}")
+            print(f"載入extension失敗: {extension}, 錯誤: {e}")
             
 @bot.event
 async def on_ready():
     """當機器人啟動時觸發"""   
     print(f"✅ 目前登入身份 --> {bot.user}")
 
+    # 改status
+    MY_APP_ID = "1095647007324000286"
+
+    activity = discord.Activity(
+        type=discord.ActivityType.playing,
+        name="Music | /help", 
+        state="尋找 yukino0535 中...", 
+        
+        application_id=MY_APP_ID
+    )
+    
+    await bot.change_presence(status=discord.Status.online, activity=activity)
+    print(f"已啟動status")
+    
     try:
         # 同步斜線指令
         slash = await bot.tree.sync()
         print(f"✅ 載入 {len(slash)} 個斜線指令")
     except Exception as e:
-        print(f"❌ 同步斜線指令失敗: {e}")
+        print(f"同步斜線指令失敗: {e}")
 
 def main():
     """主程式啟動點"""
     try:
         initialize_database()
     except Exception as e:
-        print(f"❌ 資料庫初始化失敗：{e}")
+        print(f"資料庫初始化失敗：{e}")
         return
 
-    # 初始化 Gemini API
-    setup_gemini_api(bot, gemini_api_key)
+    # 調整用哪個 API
+    if openai_key:
+        print("啟動模式：OpenAI API (GPT-4o-mini)")
+        setup_openai_api(bot, openai_key)
+    elif gemini_api_key:
+        print("啟動模式：Gemini API")
+        setup_gemini_api(bot, gemini_api_key)
+    else:
+        print("找不到任何 API Key (OpenAI 或 Gemini)")
 
     # 載入 Group 指令
     bot.tree.add_command(info_group)
@@ -73,13 +106,13 @@ def main():
     async def start_bot():
         # 在啟動機器人前載入 Cog
         await load_extensions()
-        print("🟢 開始運行機器人...")
+        print("開始運行機器人...")
         await bot.start(bot_token)
 
     try:
         asyncio.run(start_bot())
     except Exception as e:
-        print(f"❌ 致命錯誤：程式無法啟動。錯誤訊息：{e}")
+        print(f"程式無法啟動。錯誤：{e}")
 
 
 if __name__ == "__main__":
