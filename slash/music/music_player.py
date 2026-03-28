@@ -321,8 +321,9 @@ class Music(commands.Cog):
             return await interaction.edit_original_response(content="找不到歌曲")
 
         if isinstance(tracks, wavelink.Playlist):
-            added = await vc.queue.put_wait(tracks)
-            await interaction.edit_original_response(content=f"已匯入清單：**{tracks.name}**（共 {added} 首）")
+            track = tracks.tracks[0]
+            await vc.queue.put_wait(track)
+            await interaction.edit_original_response(content=f"已加入隊列：**{track.title}**")
         else:
             track = tracks[0]
             if priority:
