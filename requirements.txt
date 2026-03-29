@@ -1,0 +1,11 @@
+numpy==1.26.4
+discord.py
+google-generativeai
+pandas
+flask
+gunicorn
+python-dotenv
+yt-dlp
+PyNaCl
+wavelink>=3.0.0
+openai
