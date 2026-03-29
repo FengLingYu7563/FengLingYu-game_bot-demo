@@ -1,4 +1,6 @@
 # Oracle Cloud VM Deployment Guide
+> **Tip:** <>是你應該要替換掉的欄位
+> Replace the <> fields with your own values.
 
 Oracle Cloud offers an Always Free tier, which includes:
 
@@ -20,9 +22,10 @@ When signing up, choose your region carefully — **it cannot be changed later**
 Go to **Compute → Instances → Create Instance**, select the **Ampere A1** shape, and generate an SSH key pair.
 
 **Make sure to save both the public and private keys** — you will need the private key to connect to your VM.
-
+- Image
 ![picture1](https://github.com/user-attachments/assets/53422079-a952-495b-a0b8-aaf547bb79f8)
 
+- Shape
 ![picture2](https://github.com/user-attachments/assets/29055868-81a2-47ea-ba29-e32af55c1a34)
 
 ---
@@ -47,6 +50,16 @@ nano .env
 > Press Ctrl+X → Y → Enter to save and exit.
 > Press Ctrl+B → [ to enter scroll mode, use arrow keys to scroll, and press Q to exit.
 
+---
+
+## File Transfer(If u want)
+```bash
+# Upload a file to the VM
+scp -i <PRIVATE_KEY_PATH> <LOCAL_FILE_PATH> opc@<YOUR_VM_IP>:<REMOTE_PATH_U_WANT_TO_PUT>
+
+# Download a file from the VM
+scp -i <PRIVATE_KEY_PATH> opc@<YOUR_VM_IP>:<REMOTE_FILE_PATH> <LOCAL_PATH_U_WANT_TO_PUT>
+```
 ---
 
 ## Run with tmux
