@@ -1,5 +1,6 @@
 # Oracle Cloud VM Deployment Guide
 > **Tip:** <>是你應該要替換掉的欄位
+> 
 > Replace the <> fields with your own values.
 
 Oracle Cloud offers an Always Free tier, which includes:
@@ -9,6 +10,7 @@ Oracle Cloud offers an Always Free tier, which includes:
 
 This makes it a great free option for hosting a Discord bot or any other lightweight application.
 > **Tip:** Upgrading to a paid account increases your chances of claiming Always Free ARM instances, as they are in high demand.
+> 
 > As long as you stay within the free tier limits, you won't be charged.
 
 When signing up, choose your region carefully — **it cannot be changed later**.
