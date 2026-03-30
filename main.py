@@ -80,7 +80,7 @@ async def on_ready():
     
     # await bot.change_presence(status=discord.Status.online, activity=activity)
     
-# === bot Mount time ===
+    # === bot Mount time ===
     async def update_presence():
         set_start_date(datetime.now().strftime("%Y-%m-%d"))
         while True:
