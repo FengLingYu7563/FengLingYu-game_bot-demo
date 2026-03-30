@@ -13,6 +13,12 @@ from chat.openai_api import setup_openai_api
 from slash.info import info_group
 from database import initialize_database
 
+# === bot Mount time ===
+from datetime import datetime
+from database import add_uptime_seconds, get_total_uptime
+bot_start_time = datetime.now()
+# === bot Mount time ===
+
 load_dotenv()
 
 bot_token = os.getenv("DISCORD_BOT_TOKEN")
@@ -64,15 +70,36 @@ async def on_ready():
     # 改status
     MY_APP_ID = "1095647007324000286"
 
-    activity = discord.Activity(
-        type=discord.ActivityType.playing,
-        name="Music | /help", 
-        state="尋找 yukino0535 中...", 
+    # activity = discord.Activity(
+    #     type=discord.ActivityType.playing,
+    #     name="Music | /help", 
+    #     state="尋找 yukino0535 中...", 
         
-        application_id=MY_APP_ID
-    )
+    #     application_id=MY_APP_ID
+    # )
     
-    await bot.change_presence(status=discord.Status.online, activity=activity)
+    # await bot.change_presence(status=discord.Status.online, activity=activity)
+    
+    # === bot Mount time ===
+    async def update_presence():
+        while True:
+            current_seconds = (datetime.now() - bot_start_time).total_seconds()
+            total_seconds = get_total_uptime() + current_seconds
+            days = int(total_seconds // 86400) + 1
+            await bot.change_presence(
+                status=discord.Status.online,
+                activity=discord.Activity(
+                    type=discord.ActivityType.playing,
+                    name="Music | /help",
+                    state=f"尋找 yukino0535 的第 {days} 天...",
+                    application_id=MY_APP_ID
+                )
+            )
+            await asyncio.sleep(3600)
+            add_uptime_seconds(3600)
+    asyncio.create_task(update_presence())
+    # === bot Mount time ===
+    
     print(f"已啟動status")
     
     try:

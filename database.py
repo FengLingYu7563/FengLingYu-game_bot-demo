@@ -12,7 +12,7 @@ def initialize_database():
     """初始化 Firebase 服務與 Firestore 客戶端"""
     global db
     if firebase_admin._apps:
-        print("✅ Firebase 已初始化，無需重複初始化。")
+        print("Firebase 已初始化，無需重複初始化。")
         return
 
     # 檢查是否有服務帳號金鑰檔案路徑的環境變數
@@ -20,38 +20,38 @@ def initialize_database():
     cred_obj = None
 
     if cred_file_path and os.path.exists(cred_file_path):
-        print("🟢 偵測到 FIREBASE_CREDENTIALS_FILE，嘗試從檔案讀取憑證...")
+        print("偵測到 FIREBASE_CREDENTIALS_FILE，嘗試從檔案讀取憑證...")
         try:
             with open(cred_file_path, 'r') as f:
                 cred_obj = json.load(f)
             cred = credentials.Certificate(cred_obj)
             firebase_admin.initialize_app(cred)
-            print("✅ Firebase 已成功初始化 (模式: 服務帳號金鑰檔案)")
+            print("Firebase 已成功初始化 (模式: 服務帳號金鑰檔案)")
         except Exception as e:
-            print(f"❌ Firebase 初始化失敗: 無法從檔案讀取憑證。錯誤訊息: {e}")
+            print(f"Firebase 初始化失敗: 無法從檔案讀取憑證。錯誤訊息: {e}")
             raise e
     else:
         # 如果沒有檔案路徑，退回原先的環境變數字串模式
         print("🟡 未偵測到 FIREBASE_CREDENTIALS_FILE，嘗試從 FIREBASE_ADMIN_CREDENTIALS 讀取憑證。")
         cred_json = os.getenv("FIREBASE_ADMIN_CREDENTIALS")
         if cred_json:
-            print("🟢 偵測到 FIREBASE_ADMIN_CREDENTIALS 環境變數，嘗試從字串讀取...")
+            print("偵測到 FIREBASE_ADMIN_CREDENTIALS 環境變數，嘗試從字串讀取...")
             try:
                 cred_obj = json.loads(cred_json)
                 cred = credentials.Certificate(cred_obj)
                 firebase_admin.initialize_app(cred)
-                print("✅ Firebase 已成功初始化 (模式: 環境變數字串)")
+                print("Firebase 已成功初始化 (模式: 環境變數字串)")
             except Exception as e:
-                print(f"❌ Firebase 初始化失敗: 無法從字串讀取憑證。錯誤訊息: {e}")
+                print(f"Firebase 初始化失敗: 無法從字串讀取憑證。錯誤訊息: {e}")
                 raise e
         else:
             # 如果都找不到，嘗試使用 Application Default
             print("🟡 未找到 FIREBASE_ADMIN_CREDENTIALS，嘗試使用 ApplicationDefault。")
             try:
                 firebase_admin.initialize_app()
-                print("✅ Firebase 已成功初始化 (模式: 應用預設憑證)")
+                print("Firebase 已成功初始化 (模式: 應用預設憑證)")
             except Exception as e:
-                print(f"❌ Firebase 初始化失敗: {e}")
+                print(f"Firebase 初始化失敗: {e}")
                 print("請檢查你的本地環境是否已設定 ADC，或提供一個有效的服務帳號金鑰。")
                 raise e # 為了確保 main 函式能捕捉到錯誤並停止，這裡重新拋出異常
 
@@ -95,7 +95,7 @@ def get_user_profile(user_id):
             doc_ref.set(default_profile)
             return default_profile
     except Exception as e:
-        print(f"❌ 獲取用戶資料失敗: {e}")
+        print(f"獲取用戶資料失敗: {e}")
         return None
 
 def add_to_history(user_id, role, content):
@@ -118,7 +118,7 @@ def add_to_history(user_id, role, content):
             
             doc_ref.update({'recent_history': history})
     except Exception as e:
-        print(f"❌ 紀錄對話歷史失敗: {e}")
+        print(f"紀錄對話歷史失敗: {e}")
 
 def update_user_profile(user_id, data):
     """更新用戶在 Firestore 中的資料"""
@@ -126,6 +126,27 @@ def update_user_profile(user_id, data):
     try:
         doc_ref = db.collection('user_profiles').document(str(user_id))
         doc_ref.set(data, merge=True)
-        print(f"✅ 成功更新用戶 {user_id} 的資料。")
+        print(f"成功更新用戶 {user_id} 的資料。")
     except Exception as e:
-        print(f"❌ 更新用戶資料失敗: {e}")
+        print(f" 更新用戶資料失敗: {e}")
+        
+# === bot Mount time ===
+def add_uptime_seconds(seconds):
+    db = get_thread_local_db()
+    try:
+        doc_ref = db.collection('bot_stats').document('uptime')
+        doc = doc_ref.get()
+        current = doc.to_dict().get('total_seconds', 0) if doc.exists else 0
+        doc_ref.set({'total_seconds': current + seconds})
+    except Exception as e:
+        print(f"更新運行時間失敗: {e}")
+
+def get_total_uptime():
+    db = get_thread_local_db()
+    try:
+        doc = db.collection('bot_stats').document('uptime').get()
+        return doc.to_dict().get('total_seconds', 0) if doc.exists else 0
+    except Exception as e:
+        print(f"讀取運行時間失敗: {e}")
+        return 0
+# === bot Mount time ===
