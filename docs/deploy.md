@@ -34,8 +34,9 @@ Go to **Compute → Instances → Create Instance**, select the **Ampere A1** sh
 
 ## SSH
 ```bash
-ssh -i <PRIVATE_KEY_PATH> opc@<YOUR_VM_IP>
+ssh -i <PRIVATE_KEY_PATH> ubuntu@<YOUR_VM_IP>
 ```
+ubuntu:ubuntu@ip, oracle linux:opc
 
 ---
 
