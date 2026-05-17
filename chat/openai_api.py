@@ -2,6 +2,7 @@ import discord
 from openai import OpenAI
 from discord.ext import commands
 import os
+import re
 import json
 import time
 
@@ -9,11 +10,16 @@ import time
 from database import get_user_profile, update_user_profile, add_to_history
 
 # 全域變數：紀錄發話時間戳記
-msg_cooldowns = [] 
+msg_cooldowns = []
 
 # 路徑設定
 KEYWORD_LIST_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "keyword_list.txt")
 SYSTEM_RULE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "system_rule.txt")
+PROMPT_INJECTION_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "prompt_injection_list.txt")
+
+# 吵架模式設定
+WAR_TIMEOUT = 30 * 60  # 30 分鐘後自動解除機器人戰爭狀態
+WAR_MAX_REPLIES = 3    # 機器人對戰最多回覆次數
 
 def parse_openai_response(text):
     if '<DATABASE_UPDATE>' in text:
@@ -32,6 +38,13 @@ def read_keyword_filter():
     except FileNotFoundError:
         return []
 
+def read_prompt_injection_list():
+    try:
+        with open(PROMPT_INJECTION_PATH, 'r', encoding='UTF-8') as f:
+            return [line.strip() for line in f if line.strip() and not line.startswith('#')]
+    except FileNotFoundError:
+        return []
+
 def read_system_rule():
     try:
         with open(SYSTEM_RULE_PATH, 'r', encoding='UTF-8') as f:
@@ -44,7 +57,7 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
         print("未提供 OpenAI API 金鑰。")
         return
 
-    prompt_injection_keywords = read_keyword_filter()
+    prompt_injection_keywords = read_keyword_filter() + read_prompt_injection_list()
     my_system_instruction = read_system_rule()
 
     try:
@@ -81,7 +94,7 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
         try:
             user_id = str(message.author.id)
             user_profile = get_user_profile(user_id)
-            
+
             # --- 獲取對話紀錄 ---
             history_context = ""
             recent_history = user_profile.get('recent_history', []) if user_profile else []
@@ -91,11 +104,11 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
 
             current_role = user_profile.get('current_role', '')
             user_info = f"使用者資訊: 名稱: {user_profile.get('name', '未知')}, 你的當前角色: {current_role if current_role else '預設屁孩'}\n" if user_profile else ""
-            
+
             # --- 戰爭狀態記憶邏輯 ---
             war_instruction = ""
-            is_bot_war = False  
-            is_user_war = False 
+            is_bot_war = False
+            is_user_war = False
             target_mention = ""
 
             # 1. 判定當前對象
@@ -106,14 +119,22 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
                 resolved_author = message.reference.resolved.author
                 if resolved_author.bot and resolved_author.id != bot.user.id:
                     actual_target_id = resolved_author.id
-            
-            # 2. 核心修正：如果當前沒標記，但最近 5 則紀錄裡有吵架對象，則強制延續
-            # 我們從 user_profile 讀取上次存下的戰爭目標
-            last_war_target = user_profile.get('last_war_target') if user_profile else None
-            if not actual_target_id and last_war_target:
-                actual_target_id = last_war_target
 
-            # 3. 根據對象生成指令
+            # 2. 從 user_profile 讀取上次的戰爭狀態
+            last_war_target = user_profile.get('last_war_target') if user_profile else None
+            last_war_time = user_profile.get('last_war_time', 0) if user_profile else 0
+            war_reply_count = user_profile.get('war_reply_count', 0) if user_profile else 0
+
+            # 3. 若當前沒有新目標，判斷是否延續上次的戰爭
+            # 條件：30分鐘內且回覆次數未超過 3 次
+            if not actual_target_id and last_war_target:
+                if time.time() - last_war_time <= WAR_TIMEOUT and war_reply_count < WAR_MAX_REPLIES:
+                    actual_target_id = last_war_target
+                else:
+                    # 超時或達到回覆上限，清除戰爭狀態
+                    update_user_profile(user_id, {"last_war_target": None, "last_war_time": None, "war_reply_count": 0})
+
+            # 4. 根據對象生成指令
             if actual_target_id:
                 is_bot_war = True
                 target_mention = f"<@{actual_target_id}>"
@@ -123,13 +144,16 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
                     f"\n2. **格式要求：每一則回覆的最開頭必須是 {target_mention}，嚴禁省略。**"
                     f"\n3. **格式禁令：禁止使用任何括號 ( ) 內容，嚴禁輸出內心戲或神態描述，僅限純文字對話。**"
                 )
-                # 更新資料庫中的戰爭對象
-                update_user_profile(user_id, {"last_war_target": actual_target_id})
-            
+                # 更新戰爭目標、時間戳記與回覆計數
+                update_user_profile(user_id, {
+                    "last_war_target": actual_target_id,
+                    "last_war_time": time.time(),
+                    "war_reply_count": war_reply_count + 1
+                })
+
             elif "吵架" in user_input or "廢物" in user_input or "爛" in user_input:
                 is_user_war = True
                 target_mention = f"<@{message.author.id}>"
-                # 完全保留你的通則內容
                 war_instruction = (
                     f"\n【關係衝突指令】當前與你對話的是 {target_mention}。"
                     f"\n1. 必須嚴格遵循「{current_role if current_role else '屁孩'}」與對方之間的「身份關係」來決定回覆基調。"
@@ -139,9 +163,9 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
                     f"\n4. 維持劇情張力與跳 Tone 的性格，回覆開頭須標記 {target_mention}。"
                 )
             else:
-                # 如果是一般對話，清除戰爭記憶
+                # 一般對話，清除戰爭記憶
                 if user_profile and user_profile.get('last_war_target'):
-                    update_user_profile(user_id, {"last_war_target": None})
+                    update_user_profile(user_id, {"last_war_target": None, "last_war_time": None, "war_reply_count": 0})
 
             full_input = f"【最近對話紀錄】\n{history_context}\n{user_info}使用者輸入: {user_input}{war_instruction}"
 
@@ -152,12 +176,11 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
                         {"role": "system", "content": my_system_instruction},
                         {"role": "user", "content": full_input}
                     ],
-                    temperature=1.2
+                    temperature=0.85
                 )
-                
+
                 raw_response = response.choices[0].message.content
-                # 強制在程式端過濾掉括號內心戲 (雙重保險)
-                import re
+                # 強制在程式端過濾掉括號內心戲（雙重保險）
                 raw_response = re.sub(r'\(.*?\)', '', raw_response).strip()
                 full_response, data_to_update = parse_openai_response(raw_response)
                 if data_to_update:
@@ -166,7 +189,7 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
                         old_keywords = set(user_profile.get('keywords', [])) if user_profile else set()
                         new_data['keywords'] = list(old_keywords.union(set(data_to_update['keywords'])))
                     update_user_profile(user_id, new_data)
-            
+
             await message.channel.send(full_response)
             msg_cooldowns.append(time.time())
 
@@ -179,7 +202,5 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
         except Exception as e:
             print(f"❌ OpenAI API 錯誤: {e}")
             await message.channel.send("我現在懶得理你。")
-        
-        await bot.process_commands(message)
-        
+
         await bot.process_commands(message)

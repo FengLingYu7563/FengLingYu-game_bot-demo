@@ -7,3 +7,22 @@ config.json
 serviceAccountKey.json
 
 cookies.txt
+
+data/system_rule.txt
+
+# 由專案初始化補充
+desktop.ini
+Thumbs.db
+.DS_Store
+*.tmp
+~$*
+*.key
+credentials.*
+secrets.*
+.claude/
+dist/
+build/
+.cache/
+*.pyc
+*.db
+*.sqlite3
