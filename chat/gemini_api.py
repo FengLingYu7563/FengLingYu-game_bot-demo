@@ -135,7 +135,16 @@ def setup_gemini_api(bot: commands.Bot, api_key: str):
             mood_instruction = MOOD_INSTRUCTIONS[current_mood]
 
             if user_profile:
-                user_info_prompt = f"使用者資訊: 名稱: {user_profile.get('name')}, 角色: {user_profile.get('current_role')}\n"
+                keywords = user_profile.get('keywords', [])
+                observations = user_profile.get('observations', [])
+                keywords_str = "、".join(keywords) if keywords else "（尚無記錄）"
+                observations_str = "、".join(observations) if observations else "（尚無記錄）"
+                user_info_prompt = (
+                    f"使用者資訊: 名稱: {user_profile.get('name')}, "
+                    f"角色: {user_profile.get('current_role')}\n"
+                    f"已知興趣與事實: {keywords_str}\n"
+                    f"長期人格觀察: {observations_str}\n"
+                )
                 full_input = f"【最近對話紀錄】\n{history_context}\n{user_info_prompt}使用者當前輸入: {user_input}"
             else:
                 full_input = f"【最近對話紀錄】\n{history_context}\n使用者當前輸入: {user_input}"
@@ -158,13 +167,13 @@ def setup_gemini_api(bot: commands.Bot, api_key: str):
                 full_response, data_to_update = parse_gemini_response(response.text)
 
                 if data_to_update:
-                    old_keywords = set(user_profile.get('keywords', [])) if user_profile else set()
                     new_data = {}
                     if 'keywords' in data_to_update:
-                        new_keywords = set(data_to_update['keywords'])
-                        new_data['keywords'] = list(old_keywords.union(new_keywords))
-                    if 'gpt_notes' in data_to_update:
-                        new_data['gpt_notes'] = data_to_update['gpt_notes']
+                        old_keywords = set(user_profile.get('keywords', [])) if user_profile else set()
+                        new_data['keywords'] = list(old_keywords.union(set(data_to_update['keywords'])))
+                    if 'observations' in data_to_update:
+                        old_obs = set(user_profile.get('observations', [])) if user_profile else set()
+                        new_data['observations'] = list(old_obs.union(set(data_to_update['observations'])))
                     update_user_profile(user_id, new_data)
             
             await message.channel.send(full_response)

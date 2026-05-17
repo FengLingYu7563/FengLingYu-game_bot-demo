@@ -116,7 +116,19 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
                 history_context += f"{role_label}: {h.get('m')}\n"
 
             current_role = user_profile.get('current_role', '')
-            user_info = f"使用者資訊: 名稱: {user_profile.get('name', '未知')}, 你的當前角色: {current_role if current_role else '預設屁孩'}\n" if user_profile else ""
+            if user_profile:
+                keywords = user_profile.get('keywords', [])
+                observations = user_profile.get('observations', [])
+                keywords_str = "、".join(keywords) if keywords else "（尚無記錄）"
+                observations_str = "、".join(observations) if observations else "（尚無記錄）"
+                user_info = (
+                    f"使用者資訊: 名稱: {user_profile.get('name', '未知')}, "
+                    f"你的當前角色: {current_role if current_role else '預設屁孩'}\n"
+                    f"已知興趣與事實: {keywords_str}\n"
+                    f"長期人格觀察: {observations_str}\n"
+                )
+            else:
+                user_info = ""
 
             # --- 心情模式（連動 20 分鐘判斷：有近期訊息就沿用，否則重新抽） ---
             last_mood = user_profile.get('current_mood') if user_profile else None
@@ -212,6 +224,9 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
                     if 'keywords' in data_to_update:
                         old_keywords = set(user_profile.get('keywords', [])) if user_profile else set()
                         new_data['keywords'] = list(old_keywords.union(set(data_to_update['keywords'])))
+                    if 'observations' in data_to_update:
+                        old_obs = set(user_profile.get('observations', [])) if user_profile else set()
+                        new_data['observations'] = list(old_obs.union(set(data_to_update['observations'])))
                     update_user_profile(user_id, new_data)
 
             await message.channel.send(full_response)

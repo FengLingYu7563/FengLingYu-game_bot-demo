@@ -113,8 +113,8 @@ def add_to_history(user_id, role, content):
             
             history.append({"r": role, "m": content, "t": __import__('time').time()})
 
-            if len(history) > 4:
-                history = history[-4:]
+            if len(history) > 5:
+                history = history[-5:]
             
             doc_ref.update({'recent_history': history})
     except Exception as e:
