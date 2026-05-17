@@ -1,44 +1,33 @@
 # FengLingYu game_bot
-
-A Discord bot with AI chat, music playback, Toram Online game info, and Minecraft control.
+![Python](https://img.shields.io/badge/Python-3.11-green)
+![License](https://img.shields.io/badge/License-MIT-brightgreen)
+## Overview
+FengLingYu game_bot is a multifunctional Discord bot that provides a flexible architecture, allowing you to add or adjust features based on your preferences.
 
 ## Features
-- **AI Chat** — Powered by OpenAI GPT-4o-mini or Google Gemini, with persistent user profiles and long-term personality observations
-- **Music Player** — Play music in voice channels
-- **Game Info** — Toram Online boss data lookup
-- **Minecraft Control** — Basic server control commands
-- **Slash Commands** — `/help`, `/ping`, `/role`, `/name`, `/profile`
+- Slash Commands
+- list info
+- AI chat bot
+- Music Commands
+## preview
+**Help**
 
-## Requirements
-- Python 3.11+
-- Discord Bot Token
-- OpenAI API Key or Google Gemini API Key
-- Firebase project (Firestore)
+![Help](https://github.com/user-attachments/assets/df576a3f-7cc1-4da0-bdd2-d4f4c476553b)
 
-## Setup
+**Toram boss info**
 
-1. Clone the repo and install dependencies
-```bash
-git clone <YOUR_REPO_URL>
-cd FengLingYu-game_bot
-pip3 install -r requirements.txt
-```
+![1](https://github.com/user-attachments/assets/5b53bec8-75d9-4409-80d3-0916fe9b6e64)
 
-2. Create a `.env` file in the project root
-```env
-DISCORD_BOT_TOKEN=your_discord_bot_token
-OPENAI_API_KEY=your_openai_key        # optional, takes priority over Gemini
-GEMINI_API_KEY=your_gemini_key        # optional, used if no OpenAI key
-```
+![2](https://github.com/user-attachments/assets/5096-4384-ae46-825da8848a80)
 
-3. Add your Firebase `serviceAccountKey.json` to the project root
+![Toram boss info](https://github.com/user-attachments/assets/6e54e8ca-dc0d-4426-9da5-633e69c3ebe8)
 
-4. Run the bot
-```bash
-python3.11 main.py
-```
+**Music control panel**
 
-The bot automatically uses OpenAI if `OPENAI_API_KEY` is set, otherwise falls back to Gemini.
+![music](https://github.com/user-attachments/assets/77d6d3ab-93f4-4f8c-a9b7-ccd0edee8a6c)
 
 ## Deployment
-See [docs/deploy.md](docs/deploy.md) for Oracle Cloud free tier deployment guide.
+
+If you're looking for a free hosting platform, I recommend the [***Oracle Cloud VM*** deployment guide](docs/deploy.md).
+## License
+Released under the  [MIT License](https://opensource.org/licenses/MIT).
