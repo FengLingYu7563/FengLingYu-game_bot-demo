@@ -4,11 +4,21 @@ from discord.ext import commands
 import os
 import json
 import time
+import random
 
 # model
 from database import get_user_profile, update_user_profile, add_to_history
 
 msg_cooldowns = []
+
+MOOD_TIMEOUT = 20 * 60
+MOOD_POOL = ["屁孩", "溫柔", "普通"]
+MOOD_WEIGHTS = [40, 35, 25]
+MOOD_INSTRUCTIONS = {
+    "屁孩": "【當前心情：屁孩模式】陰陽怪氣、嘴硬、炫耀，自認比對方聰明，死不認錯。",
+    "溫柔": "【當前心情：撫媚模式】感受對方情緒，給予溫暖體貼的回應，帶一點點傲嬌。",
+    "普通": "【當前心情：普通模式】依對方的情緒和話題自然回應，不刻意強調人設。",
+}
 
 KEYWORD_LIST_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "keyword_list.txt")
 SYSTEM_RULE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "system_rule.txt")
@@ -112,6 +122,16 @@ def setup_gemini_api(bot: commands.Bot, api_key: str):
                     role_label = "[我說過]" if h.get('r') == 'bot' else "[對方說過]"
                     history_context += f"{role_label}: {h.get('m')}\n"
 
+            # --- 心情模式 ---
+            last_mood = user_profile.get('current_mood') if user_profile else None
+            last_mood_time = user_profile.get('mood_time', 0) if user_profile else 0
+            if last_mood and time.time() - last_mood_time <= MOOD_TIMEOUT:
+                current_mood = last_mood
+            else:
+                current_mood = random.choices(MOOD_POOL, weights=MOOD_WEIGHTS)[0]
+                update_user_profile(user_id, {"current_mood": current_mood, "mood_time": time.time()})
+            mood_instruction = MOOD_INSTRUCTIONS[current_mood]
+
             if user_profile:
                 user_info_prompt = f"使用者資訊: 名稱: {user_profile.get('name')}, 角色: {user_profile.get('current_role')}\n"
                 full_input = f"【最近對話紀錄】\n{history_context}\n{user_info_prompt}使用者當前輸入: {user_input}"
@@ -124,6 +144,8 @@ def setup_gemini_api(bot: commands.Bot, api_key: str):
                 if other_bots:
                     target_bot = other_bots[0]
                     full_input += f"\n【緊急指令：開戰模式】對方是機器人 <@{target_bot.id}>。立刻發起猛烈攻擊，回覆開頭必須包含標記。"
+            else:
+                full_input += f"\n{mood_instruction}"
 
             async with message.channel.typing():
                 response = model.generate_content(

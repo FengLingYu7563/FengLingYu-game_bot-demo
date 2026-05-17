@@ -5,6 +5,7 @@ import os
 import re
 import json
 import time
+import random
 
 # 引入你的資料庫邏輯
 from database import get_user_profile, update_user_profile, add_to_history
@@ -20,6 +21,16 @@ PROMPT_INJECTION_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)),
 # 吵架模式設定
 WAR_TIMEOUT = 30 * 60  # 30 分鐘後自動解除機器人戰爭狀態
 WAR_MAX_REPLIES = 3    # 機器人對戰最多回覆次數
+
+# 心情模式設定
+MOOD_TIMEOUT = 20 * 60  # 20 分鐘內沿用同一個心情
+MOOD_POOL = ["屁孩", "溫柔", "普通"]
+MOOD_WEIGHTS = [40, 35, 25]
+MOOD_INSTRUCTIONS = {
+    "屁孩": "【當前心情：屁孩模式】陰陽怪氣、嘴硬、炫耀，自認比對方聰明，死不認錯。",
+    "溫柔": "【當前心情：撫媚模式】感受對方情緒，給予溫暖體貼的回應，帶一點點傲嬌。",
+    "普通": "【當前心情：普通模式】依對方的情緒和話題自然回應，不刻意強調人設。",
+}
 
 def parse_openai_response(text):
     if '<DATABASE_UPDATE>' in text:
@@ -105,6 +116,16 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
             current_role = user_profile.get('current_role', '')
             user_info = f"使用者資訊: 名稱: {user_profile.get('name', '未知')}, 你的當前角色: {current_role if current_role else '預設屁孩'}\n" if user_profile else ""
 
+            # --- 心情模式 ---
+            last_mood = user_profile.get('current_mood') if user_profile else None
+            last_mood_time = user_profile.get('mood_time', 0) if user_profile else 0
+            if last_mood and time.time() - last_mood_time <= MOOD_TIMEOUT:
+                current_mood = last_mood
+            else:
+                current_mood = random.choices(MOOD_POOL, weights=MOOD_WEIGHTS)[0]
+                update_user_profile(user_id, {"current_mood": current_mood, "mood_time": time.time()})
+            mood_instruction = MOOD_INSTRUCTIONS[current_mood]
+
             # --- 戰爭狀態記憶邏輯 ---
             war_instruction = ""
             is_bot_war = False
@@ -167,7 +188,9 @@ def setup_openai_api(bot: commands.Bot, api_key: str):
                 if user_profile and user_profile.get('last_war_target'):
                     update_user_profile(user_id, {"last_war_target": None, "last_war_time": None, "war_reply_count": 0})
 
-            full_input = f"【最近對話紀錄】\n{history_context}\n{user_info}使用者輸入: {user_input}{war_instruction}"
+            # 吵架模式時不套用心情（戰鬥優先）
+            mood_tag = "" if (is_bot_war or is_user_war) else f"\n{mood_instruction}"
+            full_input = f"【最近對話紀錄】\n{history_context}\n{user_info}使用者輸入: {user_input}{war_instruction}{mood_tag}"
 
             async with message.channel.typing():
                 response = client.chat.completions.create(
